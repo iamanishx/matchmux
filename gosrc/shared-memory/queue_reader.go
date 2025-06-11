@@ -1,4 +1,4 @@
-package main
+package sharedmemory
 
 /*
 #include <stdio.h>
