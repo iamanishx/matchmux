@@ -1,7 +1,7 @@
 # Compiled binaries
-csrc/writer
-csrc/reader
-gosrc/queue_reader
+csrc/shared-memory/writer
+csrc/shared-memory/reader
+gosrc/shared-memory/queue_reader
 
 # Object files
 *.o
