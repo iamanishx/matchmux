@@ -1,23 +1,28 @@
-### Build all components (C and Go)
-### `make`
 
-### Build only C programs
-### `make c_programs`
+### 🔧 Build Targets
 
-### Build only Go program
-### `make go_program`
+| Command           | Description                             |
+| ----------------- | --------------------------------------- |
+| `make`            | Build **all** C and Go components       |
+| `make c_programs` | Build only the **C programs**           |
+| `make go_program` | Build only the **Go program**           |
+| `make clean`      | Remove all built binaries and artifacts |
 
-### Clean all built binaries
-### `make clean`
+---
 
-### Run C writer (sends messages to queue)
-### `make run_writer`
+### 🚀 Run Targets
 
-### Run C reader (reads messages from queue)
-### `make run_reader`
+| Command              | Description                                       |
+| -------------------- | ------------------------------------------------- |
+| `make run_writer`    | Run the **C writer** (sends messages to queue)    |
+| `make run_reader`    | Run the **C reader** (reads messages from queue)  |
+| `make run_go_reader` | Run the **Go reader** (reads messages from queue) |
 
-### Run Go reader (reads messages from queue)
-### `make run_go_reader`
+---
 
-### Create shmfile if it doesn't exist
-### `make shmfile`
+### 📄 Utility
+
+| Command        | Description                          |
+| -------------- | ------------------------------------ |
+| `make shmfile` | Create `shmfile` if it doesn’t exist |
+
