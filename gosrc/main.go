@@ -1,8 +1,10 @@
 package main
 
-import "fmt"
-
+import (
+	"ipc/server"
+)
 
 func main() { 
- fmt.Println("Hello, World!")
+server.Server()
+
 }
