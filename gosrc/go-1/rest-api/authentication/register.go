@@ -32,11 +32,4 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	
 	fmt.Println("Received credentials:", creds)
 
-	// fmt.Fprintf(w, "auth")
-	// ctx, _ := io.ReadAll(r.Body)
-	// fmt.Println(string(ctx))
-	// var data map[string]interface{}
-	// if err := json.Unmarshal(ctx, &data); err == nil {
-	// 	fmt.Println("Parsed JSON data:", data)
-	// }
 }
