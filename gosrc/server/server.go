@@ -12,7 +12,7 @@ func Server() {
 		fmt.Fprintf(w, "Hello from the Go server!")
 	})
 	
-	http.HandleFunc("/auth", authentication.Authenticate)
+	http.HandleFunc("/auth", authentication.Register)
 
 
 	address := ":5000"
