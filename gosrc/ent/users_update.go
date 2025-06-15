@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"ipc/ent/predicate"
 	"ipc/ent/users"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -24,6 +25,76 @@ type UsersUpdate struct {
 // Where appends a list predicates to the UsersUpdate builder.
 func (uu *UsersUpdate) Where(ps ...predicate.Users) *UsersUpdate {
 	uu.mutation.Where(ps...)
+	return uu
+}
+
+// SetName sets the "name" field.
+func (uu *UsersUpdate) SetName(s string) *UsersUpdate {
+	uu.mutation.SetName(s)
+	return uu
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (uu *UsersUpdate) SetNillableName(s *string) *UsersUpdate {
+	if s != nil {
+		uu.SetName(*s)
+	}
+	return uu
+}
+
+// SetPassword sets the "password" field.
+func (uu *UsersUpdate) SetPassword(s string) *UsersUpdate {
+	uu.mutation.SetPassword(s)
+	return uu
+}
+
+// SetNillablePassword sets the "password" field if the given value is not nil.
+func (uu *UsersUpdate) SetNillablePassword(s *string) *UsersUpdate {
+	if s != nil {
+		uu.SetPassword(*s)
+	}
+	return uu
+}
+
+// SetEmail sets the "email" field.
+func (uu *UsersUpdate) SetEmail(s string) *UsersUpdate {
+	uu.mutation.SetEmail(s)
+	return uu
+}
+
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (uu *UsersUpdate) SetNillableEmail(s *string) *UsersUpdate {
+	if s != nil {
+		uu.SetEmail(*s)
+	}
+	return uu
+}
+
+// SetPhone sets the "phone" field.
+func (uu *UsersUpdate) SetPhone(s string) *UsersUpdate {
+	uu.mutation.SetPhone(s)
+	return uu
+}
+
+// SetNillablePhone sets the "phone" field if the given value is not nil.
+func (uu *UsersUpdate) SetNillablePhone(s *string) *UsersUpdate {
+	if s != nil {
+		uu.SetPhone(*s)
+	}
+	return uu
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (uu *UsersUpdate) SetCreatedAt(t time.Time) *UsersUpdate {
+	uu.mutation.SetCreatedAt(t)
+	return uu
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (uu *UsersUpdate) SetNillableCreatedAt(t *time.Time) *UsersUpdate {
+	if t != nil {
+		uu.SetCreatedAt(*t)
+	}
 	return uu
 }
 
@@ -59,7 +130,20 @@ func (uu *UsersUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (uu *UsersUpdate) check() error {
+	if v, ok := uu.mutation.Name(); ok {
+		if err := users.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Users.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (uu *UsersUpdate) sqlSave(ctx context.Context) (n int, err error) {
+	if err := uu.check(); err != nil {
+		return n, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeInt))
 	if ps := uu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -67,6 +151,21 @@ func (uu *UsersUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := uu.mutation.Name(); ok {
+		_spec.SetField(users.FieldName, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.Password(); ok {
+		_spec.SetField(users.FieldPassword, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.Email(); ok {
+		_spec.SetField(users.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.Phone(); ok {
+		_spec.SetField(users.FieldPhone, field.TypeString, value)
+	}
+	if value, ok := uu.mutation.CreatedAt(); ok {
+		_spec.SetField(users.FieldCreatedAt, field.TypeTime, value)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -86,6 +185,76 @@ type UsersUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *UsersMutation
+}
+
+// SetName sets the "name" field.
+func (uuo *UsersUpdateOne) SetName(s string) *UsersUpdateOne {
+	uuo.mutation.SetName(s)
+	return uuo
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (uuo *UsersUpdateOne) SetNillableName(s *string) *UsersUpdateOne {
+	if s != nil {
+		uuo.SetName(*s)
+	}
+	return uuo
+}
+
+// SetPassword sets the "password" field.
+func (uuo *UsersUpdateOne) SetPassword(s string) *UsersUpdateOne {
+	uuo.mutation.SetPassword(s)
+	return uuo
+}
+
+// SetNillablePassword sets the "password" field if the given value is not nil.
+func (uuo *UsersUpdateOne) SetNillablePassword(s *string) *UsersUpdateOne {
+	if s != nil {
+		uuo.SetPassword(*s)
+	}
+	return uuo
+}
+
+// SetEmail sets the "email" field.
+func (uuo *UsersUpdateOne) SetEmail(s string) *UsersUpdateOne {
+	uuo.mutation.SetEmail(s)
+	return uuo
+}
+
+// SetNillableEmail sets the "email" field if the given value is not nil.
+func (uuo *UsersUpdateOne) SetNillableEmail(s *string) *UsersUpdateOne {
+	if s != nil {
+		uuo.SetEmail(*s)
+	}
+	return uuo
+}
+
+// SetPhone sets the "phone" field.
+func (uuo *UsersUpdateOne) SetPhone(s string) *UsersUpdateOne {
+	uuo.mutation.SetPhone(s)
+	return uuo
+}
+
+// SetNillablePhone sets the "phone" field if the given value is not nil.
+func (uuo *UsersUpdateOne) SetNillablePhone(s *string) *UsersUpdateOne {
+	if s != nil {
+		uuo.SetPhone(*s)
+	}
+	return uuo
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (uuo *UsersUpdateOne) SetCreatedAt(t time.Time) *UsersUpdateOne {
+	uuo.mutation.SetCreatedAt(t)
+	return uuo
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (uuo *UsersUpdateOne) SetNillableCreatedAt(t *time.Time) *UsersUpdateOne {
+	if t != nil {
+		uuo.SetCreatedAt(*t)
+	}
+	return uuo
 }
 
 // Mutation returns the UsersMutation object of the builder.
@@ -133,7 +302,20 @@ func (uuo *UsersUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (uuo *UsersUpdateOne) check() error {
+	if v, ok := uuo.mutation.Name(); ok {
+		if err := users.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Users.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (uuo *UsersUpdateOne) sqlSave(ctx context.Context) (_node *Users, err error) {
+	if err := uuo.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeInt))
 	id, ok := uuo.mutation.ID()
 	if !ok {
@@ -158,6 +340,21 @@ func (uuo *UsersUpdateOne) sqlSave(ctx context.Context) (_node *Users, err error
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := uuo.mutation.Name(); ok {
+		_spec.SetField(users.FieldName, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.Password(); ok {
+		_spec.SetField(users.FieldPassword, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.Email(); ok {
+		_spec.SetField(users.FieldEmail, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.Phone(); ok {
+		_spec.SetField(users.FieldPhone, field.TypeString, value)
+	}
+	if value, ok := uuo.mutation.CreatedAt(); ok {
+		_spec.SetField(users.FieldCreatedAt, field.TypeTime, value)
 	}
 	_node = &Users{config: uuo.config}
 	_spec.Assign = _node.assignValues
