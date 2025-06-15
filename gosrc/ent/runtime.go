@@ -2,8 +2,24 @@
 
 package ent
 
+import (
+	"ipc/ent/schema"
+	"ipc/ent/users"
+	"time"
+)
+
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	usersFields := schema.Users{}.Fields()
+	_ = usersFields
+	// usersDescName is the schema descriptor for name field.
+	usersDescName := usersFields[0].Descriptor()
+	// users.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	users.NameValidator = usersDescName.Validators[0].(func(string) error)
+	// usersDescCreatedAt is the schema descriptor for created_at field.
+	usersDescCreatedAt := usersFields[4].Descriptor()
+	// users.DefaultCreatedAt holds the default value on creation for the created_at field.
+	users.DefaultCreatedAt = usersDescCreatedAt.Default.(func() time.Time)
 }

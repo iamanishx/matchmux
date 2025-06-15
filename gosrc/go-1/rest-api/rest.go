@@ -13,7 +13,7 @@ func StartRest() {
 		fmt.Fprintf(w, "Hello from the Go server!")
 	})
 	
-	http.HandleFunc("/auth", authentication.Register)
+	http.HandleFunc("/register", authentication.Register)
 
 
 	address := ":5000"

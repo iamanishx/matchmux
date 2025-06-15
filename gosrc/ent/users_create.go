@@ -4,8 +4,10 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"ipc/ent/users"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -18,6 +20,44 @@ type UsersCreate struct {
 	hooks    []Hook
 }
 
+// SetName sets the "name" field.
+func (uc *UsersCreate) SetName(s string) *UsersCreate {
+	uc.mutation.SetName(s)
+	return uc
+}
+
+// SetPassword sets the "password" field.
+func (uc *UsersCreate) SetPassword(s string) *UsersCreate {
+	uc.mutation.SetPassword(s)
+	return uc
+}
+
+// SetEmail sets the "email" field.
+func (uc *UsersCreate) SetEmail(s string) *UsersCreate {
+	uc.mutation.SetEmail(s)
+	return uc
+}
+
+// SetPhone sets the "phone" field.
+func (uc *UsersCreate) SetPhone(s string) *UsersCreate {
+	uc.mutation.SetPhone(s)
+	return uc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (uc *UsersCreate) SetCreatedAt(t time.Time) *UsersCreate {
+	uc.mutation.SetCreatedAt(t)
+	return uc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (uc *UsersCreate) SetNillableCreatedAt(t *time.Time) *UsersCreate {
+	if t != nil {
+		uc.SetCreatedAt(*t)
+	}
+	return uc
+}
+
 // Mutation returns the UsersMutation object of the builder.
 func (uc *UsersCreate) Mutation() *UsersMutation {
 	return uc.mutation
@@ -25,6 +65,7 @@ func (uc *UsersCreate) Mutation() *UsersMutation {
 
 // Save creates the Users in the database.
 func (uc *UsersCreate) Save(ctx context.Context) (*Users, error) {
+	uc.defaults()
 	return withHooks(ctx, uc.sqlSave, uc.mutation, uc.hooks)
 }
 
@@ -50,8 +91,36 @@ func (uc *UsersCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (uc *UsersCreate) defaults() {
+	if _, ok := uc.mutation.CreatedAt(); !ok {
+		v := users.DefaultCreatedAt()
+		uc.mutation.SetCreatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (uc *UsersCreate) check() error {
+	if _, ok := uc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Users.name"`)}
+	}
+	if v, ok := uc.mutation.Name(); ok {
+		if err := users.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Users.name": %w`, err)}
+		}
+	}
+	if _, ok := uc.mutation.Password(); !ok {
+		return &ValidationError{Name: "password", err: errors.New(`ent: missing required field "Users.password"`)}
+	}
+	if _, ok := uc.mutation.Email(); !ok {
+		return &ValidationError{Name: "email", err: errors.New(`ent: missing required field "Users.email"`)}
+	}
+	if _, ok := uc.mutation.Phone(); !ok {
+		return &ValidationError{Name: "phone", err: errors.New(`ent: missing required field "Users.phone"`)}
+	}
+	if _, ok := uc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Users.created_at"`)}
+	}
 	return nil
 }
 
@@ -78,6 +147,26 @@ func (uc *UsersCreate) createSpec() (*Users, *sqlgraph.CreateSpec) {
 		_node = &Users{config: uc.config}
 		_spec = sqlgraph.NewCreateSpec(users.Table, sqlgraph.NewFieldSpec(users.FieldID, field.TypeInt))
 	)
+	if value, ok := uc.mutation.Name(); ok {
+		_spec.SetField(users.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := uc.mutation.Password(); ok {
+		_spec.SetField(users.FieldPassword, field.TypeString, value)
+		_node.Password = value
+	}
+	if value, ok := uc.mutation.Email(); ok {
+		_spec.SetField(users.FieldEmail, field.TypeString, value)
+		_node.Email = value
+	}
+	if value, ok := uc.mutation.Phone(); ok {
+		_spec.SetField(users.FieldPhone, field.TypeString, value)
+		_node.Phone = value
+	}
+	if value, ok := uc.mutation.CreatedAt(); ok {
+		_spec.SetField(users.FieldCreatedAt, field.TypeTime, value)
+		_node.CreatedAt = value
+	}
 	return _node, _spec
 }
 
@@ -99,6 +188,7 @@ func (ucb *UsersCreateBulk) Save(ctx context.Context) ([]*Users, error) {
 	for i := range ucb.builders {
 		func(i int, root context.Context) {
 			builder := ucb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*UsersMutation)
 				if !ok {

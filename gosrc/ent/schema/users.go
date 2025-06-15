@@ -18,7 +18,7 @@ func (Users) Fields() []ent.Field {
         field.String("name").NotEmpty(),
         field.String("password").Sensitive(), 
         field.String("email").Unique(),
-		field.Int("phone").Unique(),
+		field.String("phone").Unique(),
         field.Time("created_at").Default(time.Now),
     }
 }

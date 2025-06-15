@@ -14,6 +14,7 @@ type Credentials struct {
 }
 
 func Register(w http.ResponseWriter, r *http.Request) {
+
 	var creds Credentials
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
@@ -24,12 +25,19 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	 if creds.Email == "" || creds.Phone == "" || creds.Name == "" || creds.Password == "" {
-        w.WriteHeader(http.StatusBadRequest)
-        fmt.Fprintf(w, "Missing required fields")
-        return
-    }
-	
-	fmt.Println("Received credentials:", creds)
+	if creds.Email == "" || creds.Phone == "" || creds.Name == "" || creds.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Missing required fields")
+		return
+	}
+     
+	_ , err := CreateUser(&creds)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error creating user: %v", err)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "User created successfully")
 
 }
