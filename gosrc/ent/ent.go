@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"ipc/ent/orders"
+	"ipc/ent/otp"
 	"ipc/ent/trades"
 	"ipc/ent/users"
 	"reflect"
@@ -76,6 +77,7 @@ func checkColumn(table, column string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			orders.Table: orders.ValidColumn,
+			otp.Table:    otp.ValidColumn,
 			trades.Table: trades.ValidColumn,
 			users.Table:  users.ValidColumn,
 		})

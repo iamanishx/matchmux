@@ -10,13 +10,14 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 // Users is the model entity for the Users schema.
 type Users struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID uuid.UUID `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Password holds the value of the "password" field.
@@ -26,8 +27,33 @@ type Users struct {
 	// Phone holds the value of the "phone" field.
 	Phone string `json:"phone,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt    time.Time `json:"created_at,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Verified holds the value of the "verified" field.
+	Verified bool `json:"verified,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UsersQuery when eager-loading is set.
+	Edges        UsersEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UsersEdges holds the relations/edges for other nodes in the graph.
+type UsersEdges struct {
+	// Otp holds the value of the otp edge.
+	Otp []*Otp `json:"otp,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// OtpOrErr returns the Otp value or an error if the edge
+// was not loaded in eager-loading.
+func (e UsersEdges) OtpOrErr() ([]*Otp, error) {
+	if e.loadedTypes[0] {
+		return e.Otp, nil
+	}
+	return nil, &NotLoadedError{edge: "otp"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -35,12 +61,14 @@ func (*Users) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case users.FieldID:
-			values[i] = new(sql.NullInt64)
+		case users.FieldVerified:
+			values[i] = new(sql.NullBool)
 		case users.FieldName, users.FieldPassword, users.FieldEmail, users.FieldPhone:
 			values[i] = new(sql.NullString)
-		case users.FieldCreatedAt:
+		case users.FieldCreatedAt, users.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case users.FieldID:
+			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -57,11 +85,11 @@ func (u *Users) assignValues(columns []string, values []any) error {
 	for i := range columns {
 		switch columns[i] {
 		case users.FieldID:
-			value, ok := values[i].(*sql.NullInt64)
-			if !ok {
-				return fmt.Errorf("unexpected type %T for field id", value)
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field id", values[i])
+			} else if value != nil {
+				u.ID = *value
 			}
-			u.ID = int(value.Int64)
 		case users.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field name", values[i])
@@ -92,6 +120,18 @@ func (u *Users) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				u.CreatedAt = value.Time
 			}
+		case users.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				u.UpdatedAt = value.Time
+			}
+		case users.FieldVerified:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field verified", values[i])
+			} else if value.Valid {
+				u.Verified = value.Bool
+			}
 		default:
 			u.selectValues.Set(columns[i], values[i])
 		}
@@ -103,6 +143,11 @@ func (u *Users) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (u *Users) Value(name string) (ent.Value, error) {
 	return u.selectValues.Get(name)
+}
+
+// QueryOtp queries the "otp" edge of the Users entity.
+func (u *Users) QueryOtp() *OtpQuery {
+	return NewUsersClient(u.config).QueryOtp(u)
 }
 
 // Update returns a builder for updating this Users.
@@ -141,6 +186,12 @@ func (u *Users) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(u.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(u.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("verified=")
+	builder.WriteString(fmt.Sprintf("%v", u.Verified))
 	builder.WriteByte(')')
 	return builder.String()
 }

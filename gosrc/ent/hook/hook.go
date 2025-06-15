@@ -20,6 +20,18 @@ func (f OrdersFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrdersMutation", m)
 }
 
+// The OtpFunc type is an adapter to allow the use of ordinary
+// function as Otp mutator.
+type OtpFunc func(context.Context, *ent.OtpMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OtpFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OtpMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OtpMutation", m)
+}
+
 // The TradesFunc type is an adapter to allow the use of ordinary
 // function as Trades mutator.
 type TradesFunc func(context.Context, *ent.TradesMutation) (ent.Value, error)

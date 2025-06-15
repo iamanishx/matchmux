@@ -4,7 +4,9 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
+	"ipc/ent/otp"
 	"ipc/ent/predicate"
 	"ipc/ent/users"
 	"math"
@@ -13,6 +15,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UsersQuery is the builder for querying Users entities.
@@ -22,6 +25,7 @@ type UsersQuery struct {
 	order      []users.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Users
+	withOtp    *OtpQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -58,6 +62,28 @@ func (uq *UsersQuery) Order(o ...users.OrderOption) *UsersQuery {
 	return uq
 }
 
+// QueryOtp chains the current query on the "otp" edge.
+func (uq *UsersQuery) QueryOtp() *OtpQuery {
+	query := (&OtpClient{config: uq.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := uq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := uq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(users.Table, users.FieldID, selector),
+			sqlgraph.To(otp.Table, otp.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, users.OtpTable, users.OtpColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first Users entity from the query.
 // Returns a *NotFoundError when no Users was found.
 func (uq *UsersQuery) First(ctx context.Context) (*Users, error) {
@@ -82,8 +108,8 @@ func (uq *UsersQuery) FirstX(ctx context.Context) *Users {
 
 // FirstID returns the first Users ID from the query.
 // Returns a *NotFoundError when no Users ID was found.
-func (uq *UsersQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (uq *UsersQuery) FirstID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = uq.Limit(1).IDs(setContextOp(ctx, uq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -95,7 +121,7 @@ func (uq *UsersQuery) FirstID(ctx context.Context) (id int, err error) {
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (uq *UsersQuery) FirstIDX(ctx context.Context) int {
+func (uq *UsersQuery) FirstIDX(ctx context.Context) uuid.UUID {
 	id, err := uq.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -133,8 +159,8 @@ func (uq *UsersQuery) OnlyX(ctx context.Context) *Users {
 // OnlyID is like Only, but returns the only Users ID in the query.
 // Returns a *NotSingularError when more than one Users ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (uq *UsersQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (uq *UsersQuery) OnlyID(ctx context.Context) (id uuid.UUID, err error) {
+	var ids []uuid.UUID
 	if ids, err = uq.Limit(2).IDs(setContextOp(ctx, uq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -150,7 +176,7 @@ func (uq *UsersQuery) OnlyID(ctx context.Context) (id int, err error) {
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (uq *UsersQuery) OnlyIDX(ctx context.Context) int {
+func (uq *UsersQuery) OnlyIDX(ctx context.Context) uuid.UUID {
 	id, err := uq.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -178,7 +204,7 @@ func (uq *UsersQuery) AllX(ctx context.Context) []*Users {
 }
 
 // IDs executes the query and returns a list of Users IDs.
-func (uq *UsersQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (uq *UsersQuery) IDs(ctx context.Context) (ids []uuid.UUID, err error) {
 	if uq.ctx.Unique == nil && uq.path != nil {
 		uq.Unique(true)
 	}
@@ -190,7 +216,7 @@ func (uq *UsersQuery) IDs(ctx context.Context) (ids []int, err error) {
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (uq *UsersQuery) IDsX(ctx context.Context) []int {
+func (uq *UsersQuery) IDsX(ctx context.Context) []uuid.UUID {
 	ids, err := uq.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -250,10 +276,22 @@ func (uq *UsersQuery) Clone() *UsersQuery {
 		order:      append([]users.OrderOption{}, uq.order...),
 		inters:     append([]Interceptor{}, uq.inters...),
 		predicates: append([]predicate.Users{}, uq.predicates...),
+		withOtp:    uq.withOtp.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
 	}
+}
+
+// WithOtp tells the query-builder to eager-load the nodes that are connected to
+// the "otp" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UsersQuery) WithOtp(opts ...func(*OtpQuery)) *UsersQuery {
+	query := (&OtpClient{config: uq.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	uq.withOtp = query
+	return uq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -332,8 +370,11 @@ func (uq *UsersQuery) prepareQuery(ctx context.Context) error {
 
 func (uq *UsersQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Users, error) {
 	var (
-		nodes = []*Users{}
-		_spec = uq.querySpec()
+		nodes       = []*Users{}
+		_spec       = uq.querySpec()
+		loadedTypes = [1]bool{
+			uq.withOtp != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Users).scanValues(nil, columns)
@@ -341,6 +382,7 @@ func (uq *UsersQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Users,
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Users{config: uq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -352,7 +394,45 @@ func (uq *UsersQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Users,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := uq.withOtp; query != nil {
+		if err := uq.loadOtp(ctx, query, nodes,
+			func(n *Users) { n.Edges.Otp = []*Otp{} },
+			func(n *Users, e *Otp) { n.Edges.Otp = append(n.Edges.Otp, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (uq *UsersQuery) loadOtp(ctx context.Context, query *OtpQuery, nodes []*Users, init func(*Users), assign func(*Users, *Otp)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uuid.UUID]*Users)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(otp.FieldUserID)
+	}
+	query.Where(predicate.Otp(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(users.OtpColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.UserID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "user_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (uq *UsersQuery) sqlCount(ctx context.Context) (int, error) {
@@ -365,7 +445,7 @@ func (uq *UsersQuery) sqlCount(ctx context.Context) (int, error) {
 }
 
 func (uq *UsersQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeUUID))
 	_spec.From = uq.sql
 	if unique := uq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
