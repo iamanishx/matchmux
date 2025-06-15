@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"ipc/ent/otp"
 	"ipc/ent/predicate"
 	"ipc/ent/users"
 	"time"
@@ -98,13 +99,70 @@ func (uu *UsersUpdate) SetNillableCreatedAt(t *time.Time) *UsersUpdate {
 	return uu
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (uu *UsersUpdate) SetUpdatedAt(t time.Time) *UsersUpdate {
+	uu.mutation.SetUpdatedAt(t)
+	return uu
+}
+
+// SetVerified sets the "verified" field.
+func (uu *UsersUpdate) SetVerified(b bool) *UsersUpdate {
+	uu.mutation.SetVerified(b)
+	return uu
+}
+
+// SetNillableVerified sets the "verified" field if the given value is not nil.
+func (uu *UsersUpdate) SetNillableVerified(b *bool) *UsersUpdate {
+	if b != nil {
+		uu.SetVerified(*b)
+	}
+	return uu
+}
+
+// AddOtpIDs adds the "otp" edge to the Otp entity by IDs.
+func (uu *UsersUpdate) AddOtpIDs(ids ...int) *UsersUpdate {
+	uu.mutation.AddOtpIDs(ids...)
+	return uu
+}
+
+// AddOtp adds the "otp" edges to the Otp entity.
+func (uu *UsersUpdate) AddOtp(o ...*Otp) *UsersUpdate {
+	ids := make([]int, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uu.AddOtpIDs(ids...)
+}
+
 // Mutation returns the UsersMutation object of the builder.
 func (uu *UsersUpdate) Mutation() *UsersMutation {
 	return uu.mutation
 }
 
+// ClearOtp clears all "otp" edges to the Otp entity.
+func (uu *UsersUpdate) ClearOtp() *UsersUpdate {
+	uu.mutation.ClearOtp()
+	return uu
+}
+
+// RemoveOtpIDs removes the "otp" edge to Otp entities by IDs.
+func (uu *UsersUpdate) RemoveOtpIDs(ids ...int) *UsersUpdate {
+	uu.mutation.RemoveOtpIDs(ids...)
+	return uu
+}
+
+// RemoveOtp removes "otp" edges to Otp entities.
+func (uu *UsersUpdate) RemoveOtp(o ...*Otp) *UsersUpdate {
+	ids := make([]int, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uu.RemoveOtpIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (uu *UsersUpdate) Save(ctx context.Context) (int, error) {
+	uu.defaults()
 	return withHooks(ctx, uu.sqlSave, uu.mutation, uu.hooks)
 }
 
@@ -130,6 +188,14 @@ func (uu *UsersUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (uu *UsersUpdate) defaults() {
+	if _, ok := uu.mutation.UpdatedAt(); !ok {
+		v := users.UpdateDefaultUpdatedAt()
+		uu.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (uu *UsersUpdate) check() error {
 	if v, ok := uu.mutation.Name(); ok {
@@ -144,7 +210,7 @@ func (uu *UsersUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if err := uu.check(); err != nil {
 		return n, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeUUID))
 	if ps := uu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -166,6 +232,57 @@ func (uu *UsersUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := uu.mutation.CreatedAt(); ok {
 		_spec.SetField(users.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := uu.mutation.UpdatedAt(); ok {
+		_spec.SetField(users.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := uu.mutation.Verified(); ok {
+		_spec.SetField(users.FieldVerified, field.TypeBool, value)
+	}
+	if uu.mutation.OtpCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   users.OtpTable,
+			Columns: []string{users.OtpColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedOtpIDs(); len(nodes) > 0 && !uu.mutation.OtpCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   users.OtpTable,
+			Columns: []string{users.OtpColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.OtpIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   users.OtpTable,
+			Columns: []string{users.OtpColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -257,9 +374,65 @@ func (uuo *UsersUpdateOne) SetNillableCreatedAt(t *time.Time) *UsersUpdateOne {
 	return uuo
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (uuo *UsersUpdateOne) SetUpdatedAt(t time.Time) *UsersUpdateOne {
+	uuo.mutation.SetUpdatedAt(t)
+	return uuo
+}
+
+// SetVerified sets the "verified" field.
+func (uuo *UsersUpdateOne) SetVerified(b bool) *UsersUpdateOne {
+	uuo.mutation.SetVerified(b)
+	return uuo
+}
+
+// SetNillableVerified sets the "verified" field if the given value is not nil.
+func (uuo *UsersUpdateOne) SetNillableVerified(b *bool) *UsersUpdateOne {
+	if b != nil {
+		uuo.SetVerified(*b)
+	}
+	return uuo
+}
+
+// AddOtpIDs adds the "otp" edge to the Otp entity by IDs.
+func (uuo *UsersUpdateOne) AddOtpIDs(ids ...int) *UsersUpdateOne {
+	uuo.mutation.AddOtpIDs(ids...)
+	return uuo
+}
+
+// AddOtp adds the "otp" edges to the Otp entity.
+func (uuo *UsersUpdateOne) AddOtp(o ...*Otp) *UsersUpdateOne {
+	ids := make([]int, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uuo.AddOtpIDs(ids...)
+}
+
 // Mutation returns the UsersMutation object of the builder.
 func (uuo *UsersUpdateOne) Mutation() *UsersMutation {
 	return uuo.mutation
+}
+
+// ClearOtp clears all "otp" edges to the Otp entity.
+func (uuo *UsersUpdateOne) ClearOtp() *UsersUpdateOne {
+	uuo.mutation.ClearOtp()
+	return uuo
+}
+
+// RemoveOtpIDs removes the "otp" edge to Otp entities by IDs.
+func (uuo *UsersUpdateOne) RemoveOtpIDs(ids ...int) *UsersUpdateOne {
+	uuo.mutation.RemoveOtpIDs(ids...)
+	return uuo
+}
+
+// RemoveOtp removes "otp" edges to Otp entities.
+func (uuo *UsersUpdateOne) RemoveOtp(o ...*Otp) *UsersUpdateOne {
+	ids := make([]int, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uuo.RemoveOtpIDs(ids...)
 }
 
 // Where appends a list predicates to the UsersUpdate builder.
@@ -277,6 +450,7 @@ func (uuo *UsersUpdateOne) Select(field string, fields ...string) *UsersUpdateOn
 
 // Save executes the query and returns the updated Users entity.
 func (uuo *UsersUpdateOne) Save(ctx context.Context) (*Users, error) {
+	uuo.defaults()
 	return withHooks(ctx, uuo.sqlSave, uuo.mutation, uuo.hooks)
 }
 
@@ -302,6 +476,14 @@ func (uuo *UsersUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (uuo *UsersUpdateOne) defaults() {
+	if _, ok := uuo.mutation.UpdatedAt(); !ok {
+		v := users.UpdateDefaultUpdatedAt()
+		uuo.mutation.SetUpdatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (uuo *UsersUpdateOne) check() error {
 	if v, ok := uuo.mutation.Name(); ok {
@@ -316,7 +498,7 @@ func (uuo *UsersUpdateOne) sqlSave(ctx context.Context) (_node *Users, err error
 	if err := uuo.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(users.Table, users.Columns, sqlgraph.NewFieldSpec(users.FieldID, field.TypeUUID))
 	id, ok := uuo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Users.id" for update`)}
@@ -355,6 +537,57 @@ func (uuo *UsersUpdateOne) sqlSave(ctx context.Context) (_node *Users, err error
 	}
 	if value, ok := uuo.mutation.CreatedAt(); ok {
 		_spec.SetField(users.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := uuo.mutation.UpdatedAt(); ok {
+		_spec.SetField(users.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if value, ok := uuo.mutation.Verified(); ok {
+		_spec.SetField(users.FieldVerified, field.TypeBool, value)
+	}
+	if uuo.mutation.OtpCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   users.OtpTable,
+			Columns: []string{users.OtpColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedOtpIDs(); len(nodes) > 0 && !uuo.mutation.OtpCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   users.OtpTable,
+			Columns: []string{users.OtpColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.OtpIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   users.OtpTable,
+			Columns: []string{users.OtpColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Users{config: uuo.config}
 	_spec.Assign = _node.assignValues

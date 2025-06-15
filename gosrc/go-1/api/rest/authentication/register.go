@@ -3,12 +3,10 @@ package authentication
 import (
 	"encoding/json"
 	"fmt"
+	"ipc/go-1/core/models"
+	"ipc/go-1/core/services"
 	"net/http"
-	"ipc/go-1/rest-api/services"
-	"ipc/go-1/rest-api/models"
 )
-
-
 
 func Register(w http.ResponseWriter, r *http.Request) {
 
@@ -27,14 +25,19 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Missing required fields")
 		return
 	}
-     
-	_ , err := services.CreateUser(&creds)
+
+	response, err := services.CreateUser(&creds)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error creating user: %v", err)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintf(w, "User created successfully")
+	 if err := json.NewEncoder(w).Encode(response); err != nil {
+        w.WriteHeader(http.StatusInternalServerError)
+        fmt.Fprintf(w, "Error encoding response")
+        return
+    }
 
 }

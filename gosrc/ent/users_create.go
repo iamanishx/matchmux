@@ -6,11 +6,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"ipc/ent/otp"
 	"ipc/ent/users"
 	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
 )
 
 // UsersCreate is the builder for creating a Users entity.
@@ -58,6 +60,63 @@ func (uc *UsersCreate) SetNillableCreatedAt(t *time.Time) *UsersCreate {
 	return uc
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (uc *UsersCreate) SetUpdatedAt(t time.Time) *UsersCreate {
+	uc.mutation.SetUpdatedAt(t)
+	return uc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (uc *UsersCreate) SetNillableUpdatedAt(t *time.Time) *UsersCreate {
+	if t != nil {
+		uc.SetUpdatedAt(*t)
+	}
+	return uc
+}
+
+// SetVerified sets the "verified" field.
+func (uc *UsersCreate) SetVerified(b bool) *UsersCreate {
+	uc.mutation.SetVerified(b)
+	return uc
+}
+
+// SetNillableVerified sets the "verified" field if the given value is not nil.
+func (uc *UsersCreate) SetNillableVerified(b *bool) *UsersCreate {
+	if b != nil {
+		uc.SetVerified(*b)
+	}
+	return uc
+}
+
+// SetID sets the "id" field.
+func (uc *UsersCreate) SetID(u uuid.UUID) *UsersCreate {
+	uc.mutation.SetID(u)
+	return uc
+}
+
+// SetNillableID sets the "id" field if the given value is not nil.
+func (uc *UsersCreate) SetNillableID(u *uuid.UUID) *UsersCreate {
+	if u != nil {
+		uc.SetID(*u)
+	}
+	return uc
+}
+
+// AddOtpIDs adds the "otp" edge to the Otp entity by IDs.
+func (uc *UsersCreate) AddOtpIDs(ids ...int) *UsersCreate {
+	uc.mutation.AddOtpIDs(ids...)
+	return uc
+}
+
+// AddOtp adds the "otp" edges to the Otp entity.
+func (uc *UsersCreate) AddOtp(o ...*Otp) *UsersCreate {
+	ids := make([]int, len(o))
+	for i := range o {
+		ids[i] = o[i].ID
+	}
+	return uc.AddOtpIDs(ids...)
+}
+
 // Mutation returns the UsersMutation object of the builder.
 func (uc *UsersCreate) Mutation() *UsersMutation {
 	return uc.mutation
@@ -97,6 +156,18 @@ func (uc *UsersCreate) defaults() {
 		v := users.DefaultCreatedAt()
 		uc.mutation.SetCreatedAt(v)
 	}
+	if _, ok := uc.mutation.UpdatedAt(); !ok {
+		v := users.DefaultUpdatedAt()
+		uc.mutation.SetUpdatedAt(v)
+	}
+	if _, ok := uc.mutation.Verified(); !ok {
+		v := users.DefaultVerified
+		uc.mutation.SetVerified(v)
+	}
+	if _, ok := uc.mutation.ID(); !ok {
+		v := users.DefaultID()
+		uc.mutation.SetID(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -121,6 +192,12 @@ func (uc *UsersCreate) check() error {
 	if _, ok := uc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Users.created_at"`)}
 	}
+	if _, ok := uc.mutation.UpdatedAt(); !ok {
+		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Users.updated_at"`)}
+	}
+	if _, ok := uc.mutation.Verified(); !ok {
+		return &ValidationError{Name: "verified", err: errors.New(`ent: missing required field "Users.verified"`)}
+	}
 	return nil
 }
 
@@ -135,8 +212,13 @@ func (uc *UsersCreate) sqlSave(ctx context.Context) (*Users, error) {
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != nil {
+		if id, ok := _spec.ID.Value.(*uuid.UUID); ok {
+			_node.ID = *id
+		} else if err := _node.ID.Scan(_spec.ID.Value); err != nil {
+			return nil, err
+		}
+	}
 	uc.mutation.id = &_node.ID
 	uc.mutation.done = true
 	return _node, nil
@@ -145,8 +227,12 @@ func (uc *UsersCreate) sqlSave(ctx context.Context) (*Users, error) {
 func (uc *UsersCreate) createSpec() (*Users, *sqlgraph.CreateSpec) {
 	var (
 		_node = &Users{config: uc.config}
-		_spec = sqlgraph.NewCreateSpec(users.Table, sqlgraph.NewFieldSpec(users.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(users.Table, sqlgraph.NewFieldSpec(users.FieldID, field.TypeUUID))
 	)
+	if id, ok := uc.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = &id
+	}
 	if value, ok := uc.mutation.Name(); ok {
 		_spec.SetField(users.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -166,6 +252,30 @@ func (uc *UsersCreate) createSpec() (*Users, *sqlgraph.CreateSpec) {
 	if value, ok := uc.mutation.CreatedAt(); ok {
 		_spec.SetField(users.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if value, ok := uc.mutation.UpdatedAt(); ok {
+		_spec.SetField(users.FieldUpdatedAt, field.TypeTime, value)
+		_node.UpdatedAt = value
+	}
+	if value, ok := uc.mutation.Verified(); ok {
+		_spec.SetField(users.FieldVerified, field.TypeBool, value)
+		_node.Verified = value
+	}
+	if nodes := uc.mutation.OtpIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   users.OtpTable,
+			Columns: []string{users.OtpColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(otp.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -215,10 +325,6 @@ func (ucb *UsersCreateBulk) Save(ctx context.Context) ([]*Users, error) {
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
-					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
-				}
 				mutation.done = true
 				return nodes[i], nil
 			})

@@ -2,7 +2,7 @@ package server
 
 import (
 
-	"ipc/go-1/rest-api"
+	"ipc/go-1/api/rest"
 )
 
 func Server() {

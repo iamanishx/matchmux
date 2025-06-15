@@ -3,23 +3,46 @@
 package ent
 
 import (
+	"ipc/ent/otp"
 	"ipc/ent/schema"
 	"ipc/ent/users"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	otpFields := schema.Otp{}.Fields()
+	_ = otpFields
+	// otpDescCode is the schema descriptor for code field.
+	otpDescCode := otpFields[0].Descriptor()
+	// otp.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	otp.CodeValidator = otpDescCode.Validators[0].(func(string) error)
 	usersFields := schema.Users{}.Fields()
 	_ = usersFields
 	// usersDescName is the schema descriptor for name field.
-	usersDescName := usersFields[0].Descriptor()
+	usersDescName := usersFields[1].Descriptor()
 	// users.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	users.NameValidator = usersDescName.Validators[0].(func(string) error)
 	// usersDescCreatedAt is the schema descriptor for created_at field.
-	usersDescCreatedAt := usersFields[4].Descriptor()
+	usersDescCreatedAt := usersFields[5].Descriptor()
 	// users.DefaultCreatedAt holds the default value on creation for the created_at field.
 	users.DefaultCreatedAt = usersDescCreatedAt.Default.(func() time.Time)
+	// usersDescUpdatedAt is the schema descriptor for updated_at field.
+	usersDescUpdatedAt := usersFields[6].Descriptor()
+	// users.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	users.DefaultUpdatedAt = usersDescUpdatedAt.Default.(func() time.Time)
+	// users.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	users.UpdateDefaultUpdatedAt = usersDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// usersDescVerified is the schema descriptor for verified field.
+	usersDescVerified := usersFields[7].Descriptor()
+	// users.DefaultVerified holds the default value on creation for the verified field.
+	users.DefaultVerified = usersDescVerified.Default.(bool)
+	// usersDescID is the schema descriptor for id field.
+	usersDescID := usersFields[0].Descriptor()
+	// users.DefaultID holds the default value on creation for the id field.
+	users.DefaultID = usersDescID.Default.(func() uuid.UUID)
 }

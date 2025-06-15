@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/google/uuid"
 )
 
 const (
@@ -23,8 +25,21 @@ const (
 	FieldPhone = "phone"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// FieldVerified holds the string denoting the verified field in the database.
+	FieldVerified = "verified"
+	// EdgeOtp holds the string denoting the otp edge name in mutations.
+	EdgeOtp = "otp"
 	// Table holds the table name of the users in the database.
 	Table = "users"
+	// OtpTable is the table that holds the otp relation/edge.
+	OtpTable = "otps"
+	// OtpInverseTable is the table name for the Otp entity.
+	// It exists in this package in order to avoid circular dependency with the "otp" package.
+	OtpInverseTable = "otps"
+	// OtpColumn is the table column denoting the otp relation/edge.
+	OtpColumn = "user_id"
 )
 
 // Columns holds all SQL columns for users fields.
@@ -35,6 +50,8 @@ var Columns = []string{
 	FieldEmail,
 	FieldPhone,
 	FieldCreatedAt,
+	FieldUpdatedAt,
+	FieldVerified,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -52,6 +69,14 @@ var (
 	NameValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt func() time.Time
+	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
+	DefaultUpdatedAt func() time.Time
+	// UpdateDefaultUpdatedAt holds the default value on update for the "updated_at" field.
+	UpdateDefaultUpdatedAt func() time.Time
+	// DefaultVerified holds the default value on creation for the "verified" field.
+	DefaultVerified bool
+	// DefaultID holds the default value on creation for the "id" field.
+	DefaultID func() uuid.UUID
 )
 
 // OrderOption defines the ordering options for the Users queries.
@@ -85,4 +110,35 @@ func ByPhone(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUpdatedAt orders the results by the updated_at field.
+func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByVerified orders the results by the verified field.
+func ByVerified(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldVerified, opts...).ToFunc()
+}
+
+// ByOtpCount orders the results by otp count.
+func ByOtpCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOtpStep(), opts...)
+	}
+}
+
+// ByOtp orders the results by otp terms.
+func ByOtp(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOtpStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newOtpStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OtpInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OtpTable, OtpColumn),
+	)
 }

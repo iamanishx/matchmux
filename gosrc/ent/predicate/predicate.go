@@ -9,6 +9,9 @@ import (
 // Orders is the predicate function for orders builders.
 type Orders func(*sql.Selector)
 
+// Otp is the predicate function for otp builders.
+type Otp func(*sql.Selector)
+
 // Trades is the predicate function for trades builders.
 type Trades func(*sql.Selector)
 

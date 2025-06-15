@@ -2,7 +2,7 @@ package restapi
 
 import (
 	"fmt"
-	"ipc/go-1/rest-api/authentication"
+	"ipc/go-1/api/rest/authentication"
 	"net/http"
 )
 

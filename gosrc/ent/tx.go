@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Orders is the client for interacting with the Orders builders.
 	Orders *OrdersClient
+	// Otp is the client for interacting with the Otp builders.
+	Otp *OtpClient
 	// Trades is the client for interacting with the Trades builders.
 	Trades *TradesClient
 	// Users is the client for interacting with the Users builders.
@@ -150,6 +152,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Orders = NewOrdersClient(tx.config)
+	tx.Otp = NewOtpClient(tx.config)
 	tx.Trades = NewTradesClient(tx.config)
 	tx.Users = NewUsersClient(tx.config)
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"ipc/ent/otp"
 	"ipc/ent/predicate"
 	"ipc/ent/users"
 	"sync"
@@ -13,6 +14,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/google/uuid"
 )
 
 const (
@@ -25,6 +27,7 @@ const (
 
 	// Node types.
 	TypeOrders = "Orders"
+	TypeOtp    = "Otp"
 	TypeTrades = "Trades"
 	TypeUsers  = "Users"
 )
@@ -291,6 +294,507 @@ func (m *OrdersMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *OrdersMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Orders edge %s", name)
+}
+
+// OtpMutation represents an operation that mutates the Otp nodes in the graph.
+type OtpMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	code          *string
+	expires_at    *time.Time
+	clearedFields map[string]struct{}
+	users         *uuid.UUID
+	clearedusers  bool
+	done          bool
+	oldValue      func(context.Context) (*Otp, error)
+	predicates    []predicate.Otp
+}
+
+var _ ent.Mutation = (*OtpMutation)(nil)
+
+// otpOption allows management of the mutation configuration using functional options.
+type otpOption func(*OtpMutation)
+
+// newOtpMutation creates new mutation for the Otp entity.
+func newOtpMutation(c config, op Op, opts ...otpOption) *OtpMutation {
+	m := &OtpMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOtp,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOtpID sets the ID field of the mutation.
+func withOtpID(id int) otpOption {
+	return func(m *OtpMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Otp
+		)
+		m.oldValue = func(ctx context.Context) (*Otp, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Otp.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOtp sets the old Otp of the mutation.
+func withOtp(node *Otp) otpOption {
+	return func(m *OtpMutation) {
+		m.oldValue = func(context.Context) (*Otp, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OtpMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OtpMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OtpMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OtpMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Otp.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCode sets the "code" field.
+func (m *OtpMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *OtpMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the Otp entity.
+// If the Otp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OtpMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *OtpMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetExpiresAt sets the "expires_at" field.
+func (m *OtpMutation) SetExpiresAt(t time.Time) {
+	m.expires_at = &t
+}
+
+// ExpiresAt returns the value of the "expires_at" field in the mutation.
+func (m *OtpMutation) ExpiresAt() (r time.Time, exists bool) {
+	v := m.expires_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExpiresAt returns the old "expires_at" field's value of the Otp entity.
+// If the Otp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OtpMutation) OldExpiresAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExpiresAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExpiresAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExpiresAt: %w", err)
+	}
+	return oldValue.ExpiresAt, nil
+}
+
+// ResetExpiresAt resets all changes to the "expires_at" field.
+func (m *OtpMutation) ResetExpiresAt() {
+	m.expires_at = nil
+}
+
+// SetUserID sets the "user_id" field.
+func (m *OtpMutation) SetUserID(u uuid.UUID) {
+	m.users = &u
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *OtpMutation) UserID() (r uuid.UUID, exists bool) {
+	v := m.users
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the Otp entity.
+// If the Otp object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OtpMutation) OldUserID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *OtpMutation) ResetUserID() {
+	m.users = nil
+}
+
+// SetUsersID sets the "users" edge to the Users entity by id.
+func (m *OtpMutation) SetUsersID(id uuid.UUID) {
+	m.users = &id
+}
+
+// ClearUsers clears the "users" edge to the Users entity.
+func (m *OtpMutation) ClearUsers() {
+	m.clearedusers = true
+	m.clearedFields[otp.FieldUserID] = struct{}{}
+}
+
+// UsersCleared reports if the "users" edge to the Users entity was cleared.
+func (m *OtpMutation) UsersCleared() bool {
+	return m.clearedusers
+}
+
+// UsersID returns the "users" edge ID in the mutation.
+func (m *OtpMutation) UsersID() (id uuid.UUID, exists bool) {
+	if m.users != nil {
+		return *m.users, true
+	}
+	return
+}
+
+// UsersIDs returns the "users" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UsersID instead. It exists only for internal usage by the builders.
+func (m *OtpMutation) UsersIDs() (ids []uuid.UUID) {
+	if id := m.users; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUsers resets all changes to the "users" edge.
+func (m *OtpMutation) ResetUsers() {
+	m.users = nil
+	m.clearedusers = false
+}
+
+// Where appends a list predicates to the OtpMutation builder.
+func (m *OtpMutation) Where(ps ...predicate.Otp) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OtpMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OtpMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Otp, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OtpMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OtpMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Otp).
+func (m *OtpMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OtpMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.code != nil {
+		fields = append(fields, otp.FieldCode)
+	}
+	if m.expires_at != nil {
+		fields = append(fields, otp.FieldExpiresAt)
+	}
+	if m.users != nil {
+		fields = append(fields, otp.FieldUserID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OtpMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case otp.FieldCode:
+		return m.Code()
+	case otp.FieldExpiresAt:
+		return m.ExpiresAt()
+	case otp.FieldUserID:
+		return m.UserID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OtpMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case otp.FieldCode:
+		return m.OldCode(ctx)
+	case otp.FieldExpiresAt:
+		return m.OldExpiresAt(ctx)
+	case otp.FieldUserID:
+		return m.OldUserID(ctx)
+	}
+	return nil, fmt.Errorf("unknown Otp field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OtpMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case otp.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case otp.FieldExpiresAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExpiresAt(v)
+		return nil
+	case otp.FieldUserID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Otp field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OtpMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OtpMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OtpMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Otp numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OtpMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OtpMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OtpMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown Otp nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OtpMutation) ResetField(name string) error {
+	switch name {
+	case otp.FieldCode:
+		m.ResetCode()
+		return nil
+	case otp.FieldExpiresAt:
+		m.ResetExpiresAt()
+		return nil
+	case otp.FieldUserID:
+		m.ResetUserID()
+		return nil
+	}
+	return fmt.Errorf("unknown Otp field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OtpMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.users != nil {
+		edges = append(edges, otp.EdgeUsers)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OtpMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case otp.EdgeUsers:
+		if id := m.users; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OtpMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OtpMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OtpMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedusers {
+		edges = append(edges, otp.EdgeUsers)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OtpMutation) EdgeCleared(name string) bool {
+	switch name {
+	case otp.EdgeUsers:
+		return m.clearedusers
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OtpMutation) ClearEdge(name string) error {
+	switch name {
+	case otp.EdgeUsers:
+		m.ClearUsers()
+		return nil
+	}
+	return fmt.Errorf("unknown Otp unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OtpMutation) ResetEdge(name string) error {
+	switch name {
+	case otp.EdgeUsers:
+		m.ResetUsers()
+		return nil
+	}
+	return fmt.Errorf("unknown Otp edge %s", name)
 }
 
 // TradesMutation represents an operation that mutates the Trades nodes in the graph.
@@ -562,13 +1066,18 @@ type UsersMutation struct {
 	config
 	op            Op
 	typ           string
-	id            *int
+	id            *uuid.UUID
 	name          *string
 	password      *string
 	email         *string
 	phone         *string
 	created_at    *time.Time
+	updated_at    *time.Time
+	verified      *bool
 	clearedFields map[string]struct{}
+	otp           map[int]struct{}
+	removedotp    map[int]struct{}
+	clearedotp    bool
 	done          bool
 	oldValue      func(context.Context) (*Users, error)
 	predicates    []predicate.Users
@@ -594,7 +1103,7 @@ func newUsersMutation(c config, op Op, opts ...usersOption) *UsersMutation {
 }
 
 // withUsersID sets the ID field of the mutation.
-func withUsersID(id int) usersOption {
+func withUsersID(id uuid.UUID) usersOption {
 	return func(m *UsersMutation) {
 		var (
 			err   error
@@ -644,9 +1153,15 @@ func (m UsersMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of Users entities.
+func (m *UsersMutation) SetID(id uuid.UUID) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *UsersMutation) ID() (id int, exists bool) {
+func (m *UsersMutation) ID() (id uuid.UUID, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -657,12 +1172,12 @@ func (m *UsersMutation) ID() (id int, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *UsersMutation) IDs(ctx context.Context) ([]int, error) {
+func (m *UsersMutation) IDs(ctx context.Context) ([]uuid.UUID, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int{id}, nil
+			return []uuid.UUID{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):
@@ -852,6 +1367,132 @@ func (m *UsersMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
+// SetUpdatedAt sets the "updated_at" field.
+func (m *UsersMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *UsersMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the Users entity.
+// If the Users object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsersMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *UsersMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetVerified sets the "verified" field.
+func (m *UsersMutation) SetVerified(b bool) {
+	m.verified = &b
+}
+
+// Verified returns the value of the "verified" field in the mutation.
+func (m *UsersMutation) Verified() (r bool, exists bool) {
+	v := m.verified
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVerified returns the old "verified" field's value of the Users entity.
+// If the Users object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UsersMutation) OldVerified(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVerified is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVerified requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVerified: %w", err)
+	}
+	return oldValue.Verified, nil
+}
+
+// ResetVerified resets all changes to the "verified" field.
+func (m *UsersMutation) ResetVerified() {
+	m.verified = nil
+}
+
+// AddOtpIDs adds the "otp" edge to the Otp entity by ids.
+func (m *UsersMutation) AddOtpIDs(ids ...int) {
+	if m.otp == nil {
+		m.otp = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.otp[ids[i]] = struct{}{}
+	}
+}
+
+// ClearOtp clears the "otp" edge to the Otp entity.
+func (m *UsersMutation) ClearOtp() {
+	m.clearedotp = true
+}
+
+// OtpCleared reports if the "otp" edge to the Otp entity was cleared.
+func (m *UsersMutation) OtpCleared() bool {
+	return m.clearedotp
+}
+
+// RemoveOtpIDs removes the "otp" edge to the Otp entity by IDs.
+func (m *UsersMutation) RemoveOtpIDs(ids ...int) {
+	if m.removedotp == nil {
+		m.removedotp = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.otp, ids[i])
+		m.removedotp[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedOtp returns the removed IDs of the "otp" edge to the Otp entity.
+func (m *UsersMutation) RemovedOtpIDs() (ids []int) {
+	for id := range m.removedotp {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// OtpIDs returns the "otp" edge IDs in the mutation.
+func (m *UsersMutation) OtpIDs() (ids []int) {
+	for id := range m.otp {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetOtp resets all changes to the "otp" edge.
+func (m *UsersMutation) ResetOtp() {
+	m.otp = nil
+	m.clearedotp = false
+	m.removedotp = nil
+}
+
 // Where appends a list predicates to the UsersMutation builder.
 func (m *UsersMutation) Where(ps ...predicate.Users) {
 	m.predicates = append(m.predicates, ps...)
@@ -886,7 +1527,7 @@ func (m *UsersMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UsersMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 7)
 	if m.name != nil {
 		fields = append(fields, users.FieldName)
 	}
@@ -901,6 +1542,12 @@ func (m *UsersMutation) Fields() []string {
 	}
 	if m.created_at != nil {
 		fields = append(fields, users.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, users.FieldUpdatedAt)
+	}
+	if m.verified != nil {
+		fields = append(fields, users.FieldVerified)
 	}
 	return fields
 }
@@ -920,6 +1567,10 @@ func (m *UsersMutation) Field(name string) (ent.Value, bool) {
 		return m.Phone()
 	case users.FieldCreatedAt:
 		return m.CreatedAt()
+	case users.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case users.FieldVerified:
+		return m.Verified()
 	}
 	return nil, false
 }
@@ -939,6 +1590,10 @@ func (m *UsersMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldPhone(ctx)
 	case users.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
+	case users.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case users.FieldVerified:
+		return m.OldVerified(ctx)
 	}
 	return nil, fmt.Errorf("unknown Users field %s", name)
 }
@@ -982,6 +1637,20 @@ func (m *UsersMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCreatedAt(v)
+		return nil
+	case users.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case users.FieldVerified:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVerified(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Users field %s", name)
@@ -1047,54 +1716,96 @@ func (m *UsersMutation) ResetField(name string) error {
 	case users.FieldCreatedAt:
 		m.ResetCreatedAt()
 		return nil
+	case users.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case users.FieldVerified:
+		m.ResetVerified()
+		return nil
 	}
 	return fmt.Errorf("unknown Users field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UsersMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.otp != nil {
+		edges = append(edges, users.EdgeOtp)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UsersMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case users.EdgeOtp:
+		ids := make([]ent.Value, 0, len(m.otp))
+		for id := range m.otp {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UsersMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedotp != nil {
+		edges = append(edges, users.EdgeOtp)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UsersMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case users.EdgeOtp:
+		ids := make([]ent.Value, 0, len(m.removedotp))
+		for id := range m.removedotp {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UsersMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedotp {
+		edges = append(edges, users.EdgeOtp)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UsersMutation) EdgeCleared(name string) bool {
+	switch name {
+	case users.EdgeOtp:
+		return m.clearedotp
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UsersMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Users unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UsersMutation) ResetEdge(name string) error {
+	switch name {
+	case users.EdgeOtp:
+		m.ResetOtp()
+		return nil
+	}
 	return fmt.Errorf("unknown Users edge %s", name)
 }
