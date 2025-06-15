@@ -1,10 +1,9 @@
 package restapi
 
-
 import (
 	"fmt"
-	"net/http"
 	"ipc/go-1/rest-api/authentication"
+	"net/http"
 )
 
 func StartRest() {
@@ -12,9 +11,8 @@ func StartRest() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello from the Go server!")
 	})
-	
-	http.HandleFunc("/register", authentication.Register)
 
+	http.HandleFunc("/register", authentication.Register)
 
 	address := ":5000"
 	fmt.Printf("Starting server on http://localhost%s\n", address)

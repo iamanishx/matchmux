@@ -4,18 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"ipc/go-1/rest-api/services"
+	"ipc/go-1/rest-api/models"
 )
 
-type Credentials struct {
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Name     string `json:"name"`
-	Password string `json:"password"`
-}
+
 
 func Register(w http.ResponseWriter, r *http.Request) {
 
-	var creds Credentials
+	var creds models.Credentials
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
@@ -31,7 +28,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
      
-	_ , err := CreateUser(&creds)
+	_ , err := services.CreateUser(&creds)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error creating user: %v", err)

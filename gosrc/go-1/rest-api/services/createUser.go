@@ -1,11 +1,12 @@
-package authentication
+package services
 
 import (
 	"context"
 	"ipc/db"
+	"ipc/go-1/rest-api/models"
 )
 
-func CreateUser(c *Credentials) (string, error) {
+func CreateUser(c *models.Credentials) (string, error) {
 	ctx := context.Background()
 	client := db.EntClient()
 	defer client.Close()
