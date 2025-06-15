@@ -6,8 +6,6 @@ toolchain go1.23.10
 
 require entgo.io/ent v0.14.4
 
-require github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
-
 require (
 	ariga.io/atlas v0.31.1-0.20250212144724-069be8033e83 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect

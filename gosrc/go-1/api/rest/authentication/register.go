@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"ipc/go-1/rest-api/services"
-	"ipc/go-1/rest-api/models"
+	"ipc/go-1/core/services"
+	"ipc/go-1/core/models"
 )
 
 

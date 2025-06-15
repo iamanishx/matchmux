@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 	"ipc/db"
-	"ipc/go-1/rest-api/models"
+	"ipc/go-1/core/models"
 )
 
 func CreateUser(c *models.Credentials) (string, error) {
