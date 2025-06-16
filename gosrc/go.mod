@@ -7,9 +7,8 @@ toolchain go1.23.10
 require entgo.io/ent v0.14.4
 
 require (
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
-	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.2 //direct
+	golang.org/x/crypto v0.39.0 //direct
 )
 
 require (
