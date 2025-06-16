@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"ipc/db"
+	"ipc/go-1/core/helper"
 	"ipc/go-1/core/models"
 	"ipc/go-1/mail"
 	"time"
@@ -22,7 +23,7 @@ func CreateUser(c *models.Credentials) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	otp := models.GenerateOTP()
+	otp := helper.GenerateOTP()
 
 	_, err = client.Otp.Create().
 		SetCode(otp).
