@@ -32,12 +32,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Error creating user: %v", err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	 if err := json.NewEncoder(w).Encode(response); err != nil {
-        w.WriteHeader(http.StatusInternalServerError)
-        fmt.Fprintf(w, "Error encoding response")
+	responseBytes, err := json.Marshal(response)
+    if err != nil {
+        http.Error(w, "Error encoding response", http.StatusInternalServerError)
         return
     }
+	w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusCreated)
+    w.Write(responseBytes)
 
 }

@@ -7,6 +7,11 @@ toolchain go1.23.10
 require entgo.io/ent v0.14.4
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.2.2 //direct
+	golang.org/x/crypto v0.39.0 //direct
+)
+
+require (
 	ariga.io/atlas v0.31.1-0.20250212144724-069be8033e83 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
@@ -34,6 +39,6 @@ require (
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	github.com/zclconf/go-cty-yaml v1.1.0 // indirect
-	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 )

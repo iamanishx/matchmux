@@ -13,6 +13,8 @@ func StartRest() {
 	})
 
 	http.HandleFunc("/register", authentication.Register)
+	http.HandleFunc("/verify", authentication.Verify)
+	http.HandleFunc("/login", authentication.Login)
 
 	address := ":5000"
 	fmt.Printf("Starting server on http://localhost%s\n", address)
